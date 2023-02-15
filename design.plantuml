@@ -1,0 +1,46 @@
+@startuml flight
+actor clients
+frame AWS {
+    cloud Route53 as r53
+    cloud "CDN provider" as cdn
+    cloud ALB
+    collections "Nginx ASG" as Nginx
+    database S3
+    cloud ELB
+    frame "EKS in multi-AZ" {
+        collections "Nginx ingress" as ing
+        collections "Web frontend" as wf
+        collections "API frontend" as api
+        collections "Django backend" as dj
+        collections "Celery worker" as cc
+        queue "Redis pubsub" as rp
+    }
+    database Aurora
+    rectangle ElastiCache
+}
+
+frame "On premises" as op {
+    database SQL
+}
+
+AWS .. op : "AWS Direct Connect"
+
+clients -> r53
+r53 -> cdn
+cdn --> ALB
+ALB --> Nginx
+Nginx -> S3
+Nginx --> ELB
+ELB --> ing
+ing --> wf
+ing --> api
+wf --> dj
+api --> dj
+dj <- cc
+dj --> rp
+cc <-- rp
+cc --> ElastiCache
+cc --> Aurora
+cc -> SQL
+SQL -> S3 : backup
+@enduml
